@@ -1,0 +1,758 @@
+Advanced End-to-End DevSecOps
+Kubernetes Three-Tier Project using AWS
+EKS, ArgoCD, Prometheus…
+Project Introduction:
+
+Project Introduction:
+Welcome to the End-to-End DevSecOps Kubernetes Project guide! In
+this comprehensive project, we will walk through the process of
+setting up a robust Three-Tier architecture on AWS using
+Kubernetes, DevOps best practices, and security measures. This
+project aims to provide hands-on experience in deploying, securing,
+and monitoring a scalable application environment.
+Project Overview:
+In this project, we will cover the following key aspects:
+1. IAM User Setup: Create an IAM user on AWS with the necessary
+permissions to facilitate deployment and management activities.
+2. Infrastructure as Code (IaC): Use Terraform and AWS CLI to set
+up the Jenkins server (EC2 instance) on AWS.
+3. Jenkins Server Configuration: Install and configure essential
+tools on the Jenkins server, including Jenkins itself, Docker,
+Sonarqube, Terraform, Kubectl, AWS CLI, and Trivy.
+4. EKS Cluster Deployment: Utilize eksctl commands to create an
+Amazon EKS cluster, a managed Kubernetes service on AWS.
+5. Load Balancer Configuration: Configure AWS Application Load
+Balancer (ALB) for the EKS cluster.
+
+##6. Amazon ECR Repositories: Create private repositories for both
+frontend and backend Docker images on Amazon Elastic
+Container Registry (ECR).
+7. ArgoCD Installation: Install and set up ArgoCD for continuous
+delivery and GitOps.
+8. Sonarqube Integration: Integrate Sonarqube for code quality
+analysis in the DevSecOps pipeline.
+9. Jenkins Pipelines: Create Jenkins pipelines for deploying
+backend and frontend code to the EKS cluster.
+10. Monitoring Setup: Implement monitoring for the EKS cluster
+using Helm, Prometheus, and Grafana.
+11. ArgoCD Application Deployment: Use ArgoCD to deploy the
+Three-Tier application, including database, backend, frontend,
+and ingress components.
+12. DNS Configuration: Configure DNS settings to make the
+application accessible via custom subdomains.
+13. Data Persistence: Implement persistent volume and persistent
+volume claims for database pods to ensure data persistence.
+14. Conclusion and Monitoring: Conclude the project by
+summarizing key achievements and monitoring the EKS cluster's
+performance using Grafana.
+Prerequisites:
+Before starting the project, ensure you have the following
+prerequisites:
+An AWS account with the necessary permissions to create
+resources.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus-f… 3/73
+Terraform and AWS CLI installed on your local machine.
+Basic familiarity with Kubernetes, Docker, Jenkins, and DevOps
+principles.
+Step 1: We need to create an IAM user and generate the AWS
+Access key
+Create a new IAM User on AWS and give it to the
+AdministratorAccess for testing purposes (not recommended for
+your Organization's Projects)
+Go to the AWS IAM Service and click on Users.
+Click on Create user
+Provide the name to your user and click on Next.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus-f… 4/73
+Select the Attach policies directly option and search for
+AdministratorAccess then select it.
+Click on the Next.
+Click on Create user
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus-f… 5/73
+Now, Select your created user then click on Security credentials and
+generate access key by clicking on Create access key.
+Select the Command Line Interface (CLI) then select the checkmark
+for the confirmation and click on Next.
+Provide the Description and click on the Create access key.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus-f… 6/73
+Here, you will see that you got the credentials and also you can
+download the CSV file for the future.
+Step 2: We will install Terraform & AWS CLI to deploy our
+Jenkins Server(EC2) on AWS.
+Install & Configure Terraform and AWS CLI on your local machine to
+create Jenkins Server on AWS Cloud
+Terraform Installation Script
+Copy
+ 
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg - dearmor -o /
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] h
+sudo apt update
+sudo apt install terraform -y
+AWSCLI Installation Script
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus-f… 7/73
+Copy
+ 
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscl
+sudo apt install unzip -y
+unzip awscliv2.zip
+sudo ./aws/install
+Now, Configure both the tools
+Configure Terraform
+Edit the file /etc/environment using the below command add the
+highlighted lines and add your keys in the blur space.
+Copy
+sudo vim /etc/environment
+After doing the changes, restart your machine to reflect the changes
+of your environment variables.
+Configure AWS CLI
+Run the below command, and add your keys
+Copy
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus-f… 8/73
+aws configure
+Step 3: Deploy the Jenkins Server(EC2) using Terraform
+Clone the Git repository- https://github.com/AmanPathakDevOps/End-to-End-Kubernetes-DevSecOps-Tetris-Project
+Navigate to the Jenkins-Server-TF
+Do some modifications to the backend.tf file such as changing the
+bucket name and dynamodb table(make sure you have created both
+manually on AWS Cloud).
+Now, you have to replace the Pem File name as you have some other
+name for your Pem file. To provide the Pem file name that is already
+created on AWS
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus-f… 9/73
+Initialize the backend by running the below command
+Copy
+terraform init
+Run the below command to check the syntax error
+Copy
+terraform validate
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 10/73
+Run the below command to get the blueprint of what kind of AWS
+services will be created.
+Copy
+terraform plan -var-file=variables.tfvars
+Now, run the below command to create the infrastructure on AWS
+Cloud which will take 3 to 4 minutes maximum
+Copy
+terraform apply -var-file=variables.tfvars --auto-approve
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus-… 11/73
+Now, connect to your Jenkins-Server by clicking on Connect.
+Copy the ssh command and paste it on your local machine.
+Step 4: Configure the Jenkins
+Now, we logged into our Jenkins server.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 12/73
+We have installed some services such as Jenkins, Docker, Sonarqube,
+Terraform, Kubectl, AWS CLI, and Trivy.
+Let's validate whether all our installed or not.
+Copy
+jenkins --version
+docker --version
+docker ps
+terraform --version
+kubectl version
+aws --version
+trivy --version
+eksctl --version
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 13/73
+Now, we have to configure Jenkins. So, copy the public IP of your
+Jenkins Server and paste it on your favorite browser with an 8080
+port.
+Click on Install suggested plugins
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 14/73
+The plugins will be installed
+After installing the plugins, continue as admin
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 15/73
+Click on Save and Finish
+Click on Start using Jenkins
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 16/73
+The Jenkins Dashboard will look like the below snippet
+Step 5: We will deploy the EKS Cluster using eksctl commands
+Now, go back to your Jenkins Server terminal and configure the
+AWS.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 17/73
+Go to Manage Jenkins
+Click on Plugins
+Select the Available plugins install the following plugins and click on
+Install
+AWS Credentials
+Pipeline: AWS Steps
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 18/73
+Once, both the plugins are installed, restart your Jenkins service by
+checking the Restart Jenkins option.
+Login to your Jenkins Server Again
+Now, we have to set our AWS credentials on Jenkins
+Go to Manage Plugins and click on Credentials
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 19/73
+Click on global.
+Select AWS Credentials as Kind and add the ID same as shown in the
+below snippet except for your AWS Access Key & Secret Access key
+and click on Create.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 20/73
+The Credentials will look like the below snippet.
+Now, We need to add GitHub credentials as well because currently,
+my repository is Private.
+This thing, I am performing this because in Industry Projects your
+repository will be private.
+So, add the username and personal access token of your GitHub
+account.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 21/73
+Both credentials will look like this.
+Create an eks cluster using the below commands.
+Copy
+ 
+eksctl create cluster --name Three-Tier-K8s-EKS-Cluster --region us-eastaws eks update-kubeconfig --region us-east-1 --name Three-Tier-K8s-EKS-Cl
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 22/73
+Once your cluster is created, you can validate whether your nodes
+are ready or not by the below command
+Copy
+kubectl get nodes
+Step 6: Now, we will configure the Load Balancer on our EKS
+because our application will have an ingress controller.
+Download the policy for the LoadBalancer prerequisite.
+Copy
+ 
+curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balanc
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 23/73
+Create the IAM policy using the below command
+Copy
+ 
+aws iam create-policy — policy-name AWSLoadBalancerControllerIAMPolicy —
+Create OIDC Provider
+Copy
+ 
+eksctl utils associate-iam-oidc-provider — region=us-east-1 — cluster=Thr
+Create Service Account
+Copy
+ 
+eksctl create iamserviceaccount — cluster=Three-Tier-K8s-EKS-Cluster — na
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 24/73
+After 2 minutes, run the command below to check whether your
+pods are running or not.
+Copy
+kubectl get deployment -n kube-system aws-load-balancer
+Step 7: We need to create Amazon ECR Private Repositories
+for both Tiers (Frontend & Backend)
+Click on Create repository
+Select the Private option to provide the repository and click on Save.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 25/73
+Do the same for the backend repository and click on Save
+Now, we have set up our ECR Private Repository and
+Now, we need to configure ECR locally because we have to upload
+our images to Amazon ECR.
+Copy the 1st command for login
+Now, run the copied command on your Jenkins Server.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 26/73
+Step 8: Install & Configure ArgoCD
+We will be deploying our application on a three-tier namespace. To
+do that, we will create a three-tier namespace on EKS
+Copy
+kubectl create namespace three-tier
+As you know, Our two ECR repositories are private. So, when we try
+to push images to the ECR Repos it will give us the error
+Imagepullerror.
+To get rid of this error, we will create a secret for our ECR Repo by
+the below command and then, we will add this secret to the
+deployment file.
+Note: The Secrets are coming from the .docker/config.json file
+which is created while login the ECR in the earlier steps
+Copy
+kubectl create secret generic ecr-registry-secret \
+- from-file=.dockerconfigjson=${HOME}/.docker/config.json \
+- type=kubernetes.io/dockerconfigjson - namespace three-tier
+kubectl get secrets -n three-tier
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 27/73
+Now, we will install argoCD.
+To do that, create a separate namespace for it and apply the argocd
+configuration for installation.
+Copy
+ 
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/arg
+All pods must be running, to validate run the below command
+Copy
+kubectl get pods -n argocd
+Now, expose the argoCD server as LoadBalancer using the below
+command
+Copy
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 28/73
+ 
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBala
+You can validate whether the Load Balancer is created or not by
+going to the AWS Console
+To access the argoCD, copy the LoadBalancer DNS and hit on your
+favorite browser.
+You will get a warning like the below snippet.
+Click on Advanced.
+Click on the below link which is appearing under Hide advanced
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 29/73
+Now, we need to get the password for our argoCD server to perform
+the deployment.
+To do that, we have a pre-requisite which is jq. Install it by the
+command below.
+Copy
+sudo apt install jq -y
+Copy
+ 
+export ARGOCD_SERVER=`kubectl get svc argocd-server -n argocd -o json | j
+export ARGO_PWD=`kubectl -n argocd get secret argocd-initial-admin-secret
+echo $ARGO_PWD
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 30/73
+Enter the username and password in argoCD and click on SIGN IN.
+Here is our ArgoCD Dashboard.
+Step 9: Now, we have to configure Sonarqube for our
+DevSecOps Pipeline
+To do that, copy your Jenkins Server public IP and paste it on your
+favorite browser with a 9000 port
+The username and password will be admin
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 31/73
+Click on Log In.
+Update the password
+Click on Administration then Security, and select Users
+Click on Update tokens
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 32/73
+Click on Generate
+Copy the token keep it somewhere safe and click on Done.
+Now, we have to configure webhooks for quality checks.
+Click on Administration then, Configuration and select Webhooks
+Click on Create
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 33/73
+Provide the name of your project and in the URL, provide the
+Jenkins server public IP with port 8080 add sonarqube-webhook in
+the suffix, and click on Create.
+http://<jenkins-server-public-ip>:8080/sonarqube-webhook/
+Here, you can see the webhook.
+Now, we have to create a Project for frontend code.
+Click on Manually.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 34/73
+Provide the display name to your Project and click on Setup
+Click on Locally.
+Select the Use existing token and click on Continue.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 35/73
+Select Other and Linux as OS.
+After performing the above steps, you will get the command which
+you can see in the below snippet.
+Now, use the command in the Jenkins Frontend Pipeline where Code
+Quality Analysis will be performed.
+Now, we have to create a Project for backend code.
+Click on Create Project.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 36/73
+Provide the name of your project name and click on Set up.
+Click on Locally.
+Select the Use existing token and click on Continue.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 37/73
+Select Other and Linux as OS.
+After performing the above steps, you will get the command which
+you can see in the below snippet.
+Now, use the command in the Jenkins Backend Pipeline where Code
+Quality Analysis will be performed.
+Now, we have to store the sonar credentials.
+Go to Dashboard -> Manage Jenkins -> Credentials
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 38/73
+Select the kind as Secret text paste your token in Secret and keep
+other things as it is.
+Click on Create
+Now, we have to store the GitHub Personal access token to push the
+deployment file which will be modified in the pipeline itself for the
+ECR image.
+Add GitHub credentials
+Select the kind as Secret text and paste your GitHub Personal access
+token(not password) in Secret and keep other things as it is.
+Click on Create
+Note: If you haven't generated your token then, you have it generated
+first then paste it into the Jenkins
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 39/73
+Now, according to our Pipeline, we need to add an Account ID in the
+Jenkins credentials because of the ECR repo URI.
+Select the kind as Secret text paste your AWS Account ID in Secret
+and keep other things as it is.
+Click on Create
+Now, we need to provide our ECR image name for frontend which is
+frontend only.
+Select the kind as Secret text paste your frontend repo name in
+Secret and keep other things as it is.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 40/73
+Click on Create
+Now, we need to provide our ECR image name for the backend
+which is backend only.
+Select the kind as Secret text, paste your backend repo name in
+Secret, and keep other things as it is.
+Click on Create
+Final Snippet of all Credentials that we needed to implement this
+project.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 41/73
+Step 10: Install the required plugins and configure the plugins
+to deploy our Three-Tier Application
+Install the following plugins by going to Dashboard -> Manage
+Jenkins -> Plugins -> Available Plugins
+Copy
+Docker
+Docker Commons
+Docker Pipeline
+Docker API
+docker-build-step
+Eclipse Temurin installer
+NodeJS
+OWASP Dependency-Check
+SonarQube Scanner
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 42/73
+Now, we have to configure the installed plugins.
+Go to Dashboard -> Manage Jenkins -> Tools
+We are configuring jdk
+Search for jdk and provide the configuration like the below snippet.
+Now, we will configure the sonarqube-scanner
+Search for the sonarqube scanner and provide the configuration like
+the below snippet.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 43/73
+Now, we will configure nodejs
+Search for node and provide the configuration like the below
+snippet.
+Now, we will configure the OWASP Dependency check
+Search for Dependency-Check and provide the configuration like
+the below snippet.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 44/73
+Now, we will configure the docker
+Search for docker and provide the configuration like the below
+snippet.
+Now, we have to set the path for Sonarqube in Jenkins
+Go to Dashboard -> Manage Jenkins -> System
+Search for SonarQube installations
+Provide the name as it is, then in the Server URL copy the sonarqube
+public IP (same as Jenkins) with port 9000 select the sonar token that
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 45/73
+we have added recently, and click on Apply & Save.
+Now, we are ready to create our Jenkins Pipeline to deploy our
+Backend Code.
+Go to Jenkins Dashboard
+Click on New Item
+Provide the name of your Pipeline and click on OK.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 46/73
+This is the Jenkins file to deploy the Backend Code on EKS.
+Copy and paste it into the Jenkins
+https://github.com/AmanPathak-DevOps/End-to-End-KubernetesThree-Tier-DevSecOps-Project/blob/master/Jenkins-PipelineCode/Jenkinsfile-Backend
+Click Apply & Save.
+Now, click on the build.
+Our pipeline was successful after a few common mistakes.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 47/73
+Note: Do the changes in the Pipeline according to your project.
+Now, we are ready to create our Jenkins Pipeline to deploy our
+Frontend Code.
+Go to Jenkins Dashboard
+Click on New Item
+Provide the name of your Pipeline and click on OK.
+This is the Jenkins file to deploy the Frontend Code on EKS.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 48/73
+Copy and paste it into the Jenkins
+https://github.com/AmanPathak-DevOps/End-to-End-KubernetesThree-Tier-DevSecOps-Project/blob/master/Jenkins-PipelineCode/Jenkinsfile-Frontend
+Click Apply & Save.
+Now, click on the build.
+Our pipeline was successful after a few common mistakes.
+Note: Do the changes in the Pipeline according to your project.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 49/73
+Setup 10: We will set up the Monitoring for our EKS Cluster. We can
+monitor the Cluster Specifications and other necessary things.
+We will achieve the monitoring using Helm Add the prometheus
+repo by using the below command
+Copy
+helm repo add stable https://charts.helm.sh/stable
+Install the prometheus
+Copy
+ 
+helm repo add prometheus-community https://prometheus-community.github.io
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 50/73
+Now, check the service by the below command
+Copy
+kubectl get svc
+Now, we need to access our Prometheus and Grafana consoles from
+outside of the cluster.
+For that, we need to change the Service type from ClusterType to
+LoadBalancer
+Edit the stable-kube-prometheus-sta-prometheus service
+Copy
+kubectl edit svc stable-kube-prometheus-sta-prometheus
+Modification in the 48th line from ClusterType to LoadBalancer
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 51/73
+Edit the stable-grafana service
+Copy
+kubectl edit svc stable-grafana
+Modification in the 39th line from ClusterType to LoadBalancer
+Now, if you list again the service then, you will see the
+LoadBalancers DNS names
+Copy
+kubectl get svc
+You can also validate from your console.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 52/73
+Now, access your Prometheus Dashboard
+Paste the <Prometheus-LB-DNS>:9090 in your favorite browser and
+you will see like this
+Click on Status and select Target.
+You will see a lot of Targets
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 53/73
+Now, access your Grafana Dashboard
+Copy the ALB DNS of Grafana and paste it into your favorite browser.
+The username will be admin and the password will be promoperator for your Grafana LogIn.
+Now, click on Data Source
+Select Prometheus
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 54/73
+In the Connection, paste your <Prometheus-LB-DNS>:9090.
+If the URL is correct, then you will see a green notification/
+Click on Save & test.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 55/73
+Now, we will create a dashboard to visualize our Kubernetes Cluster
+Logs.
+Click on Dashboard.
+Once you click on Dashboard. You will see a lot of Kubernetes
+components monitoring.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 56/73
+Let's try to import a type of Kubernetes Dashboard.
+Click on New and select Import
+Provide 6417 ID and click on Load
+Note: 6417 is a unique ID from Grafana which is used to Monitor and
+visualize Kubernetes Data
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 57/73
+Select the data source that you have created earlier and click on
+Import.
+Here, you go.
+You can view your Kubernetes Cluster Data.
+Feel free to explore the other details of the Kubernetes Cluster.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 58/73
+Step 11: We will deploy our Three-Tier Application using
+ArgoCD.
+As our repository is private. So, we need to configure the Private
+Repository in ArgoCD.
+Click on Settings and select Repositories
+Click on CONNECT REPO USING HTTPS
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 59/73
+Now, provide the repository name where your Manifests files are
+present.
+Provide the username and GitHub Personal Access token and click
+on CONNECT.
+If your Connection Status is Successful it means repository
+connected successfully.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 60/73
+Now, we will create our first application which will be a database.
+Click on CREATE APPLICATION.
+Provide the details as it is provided in the below snippet and scroll
+down.
+Select the same repository that you configured in the earlier step.
+In the Path, provide the location where your Manifest files are
+presented and provide other things as shown in the below
+screenshot.
+Click on CREATE.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 61/73
+While your database Application is starting to deploy, We will create
+an application for the backend.
+Provide the details as it is provided in the below snippet and scroll
+down.
+Select the same repository that you configured in the earlier step.
+In the Path, provide the location where your Manifest files are
+presented and provide other things as shown in the below
+screenshot.
+Click on CREATE.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 62/73
+While your backend Application is starting to deploy, We will create
+an application for the frontend.
+Provide the details as it is provided in the below snippet and scroll
+down.
+Select the same repository that you configured in the earlier step.
+In the Path, provide the location where your Manifest files are
+presented and provide other things as shown in the below
+screenshot.
+Click on CREATE.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 63/73
+While your frontend Application is starting to deploy, We will create
+an application for the ingress.
+Provide the details as it is provided in the below snippet and scroll
+down.
+Select the same repository that you configured in the earlier step.
+In the Path, provide the location where your Manifest files are
+presented and provide other things as shown in the below
+screenshot.
+Click on CREATE.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 64/73
+Once your Ingress application is deployed. It will create an
+Application Load Balancer
+You can check out the load balancer named with k8s-three.
+Now, Copy the ALB-DNS and go to your Domain Provider in my case
+porkbun is the domain provider.
+Go to DNS and add a CNAME type with hostname backend then add
+your ALB in the Answer and click on Save
+Note: I have created a subdomain backend.amanpathakdevops.study
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 65/73
+You can see all 4 application deployments in the below snippet.
+Now, hit your subdomain after 2 to 3 minutes in your browser to see
+the magic.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 66/73
+You can play with the application by adding the records.
+You can play with the application by deleting the records.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 67/73
+Now, you can see your Grafana Dashboard to view the EKS data such
+as pods, namespace, deployments, etc.
+If you want to monitor the three-tier namespace.
+In the namespace, replace three-tier with another namespace.
+You will see the deployments that are done by ArgoCD
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 68/73
+This is the Ingress Application Deployment in ArgoCD
+This is the Frontend Application Deployment in ArgoCD
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 69/73
+This is the Backend Application Deployment in ArgoCD
+This is the Database Application Deployment in ArgoCD
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 70/73
+If you observe, we have configured the Persistent Volume &
+Persistent Volume Claim. So, if the pods get deleted then, the data
+won't be lost. The Data will be stored on the host machine.
+To validate it, delete both Database pods.
+Now, the new pods will be started.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 71/73
+And Your Application won't lose a single piece of data.
+Conclusion:
+In this comprehensive DevSecOps Kubernetes project, we
+successfully:
+Established IAM user and Terraform for AWS setup.
+Freedium
+24/07/2025, 10:35 Advanced End-to-End DevSecOps Kubernetes Three-Tier Project using AWS EKS, ArgoCD, Prometheus… | by Aman Pathak | in …
+https://freedium.cfd/https://blog.stackademic.com/advanced-end-to-end-devsecops-kubernetes-three-tier-project-using-aws-eks-argocd-prometheus… 72/73
+Deployed Jenkins on AWS, configured tools, and integrated it
+with Sonarqube.
+Set up an EKS cluster, configured a Load Balancer, and
+established private ECR repositories.
+Implemented monitoring with Helm, Prometheus, and Grafana.
+Installed and configured ArgoCD for GitOps practices.
+Created Jenkins pipelines for CI/CD, deploying a Three-Tier
+application.
+Ensured data persistence with persistent volumes and claims.
